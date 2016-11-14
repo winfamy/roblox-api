@@ -1,3 +1,5 @@
+const request = require('request');
+
 exports.module = function getInventory(roblox_user_id, callback) {
   var assettypes = [8, 18, 19];
   var left = 3;
@@ -15,19 +17,19 @@ exports.module = function getInventory(roblox_user_id, callback) {
 
       maxpages = Math.ceil(json.data.totalNumber/14);
       pushInv(json);
-      nextPage(assettype, 1, maxpages);
+      for(i = 1; i <= maxpages; i++) {
+        nextPage(assettype, i, maxpages, roblox_user_id)
+      }
     });
   }
-  function nextPage(assettype, page, maxpages) {
-    if(++page > maxpages)
+  function nextPage(assettype, page, maxpages, roblox_user_id) {
+    if(++page == maxpages)
       return completed(assettype);
-    console.log(assettype, maxpages, page);
-    request.get('https://www.roblox.com/Trade/inventoryhandler.ashx?userid=172720079&page=' + page.toString() + '&itemsPerPage=14&assetTypeId=' + assettype.toString(), function(err, resp, body) {
+    request.get('https://www.roblox.com/Trade/inventoryhandler.ashx?userid=' + roblox_user_id + '&page=' + page.toString() + '&itemsPerPage=14&assetTypeId=' + assettype.toString(), function(err, resp, body) {
       json = JSON.parse(body);
       if(!(json.msg == 'Inventory retreived!'))
         return completed(assettype);
       pushInv(json);
-      nextPage(assettype, page, maxpages);
     });
   }
   function completed(assettype) {
