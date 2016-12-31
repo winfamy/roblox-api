@@ -11,6 +11,15 @@ router.get('/username/:user_id', (req, res) => {
     })
 });
 
+router.get('/userid/:username', (req, res) => {
+    UserAPI.getUserId(req.params.username).then((user_id) => {
+        res.json({ user_id : user_id });
+    })
+    .catch((err) => {
+        res.status(500).json({ error : err });
+    });
+});
+
 module.exports = (app) => {
     app.use('/user', router);
 }

@@ -9,6 +9,14 @@ var API = {
                 })
                 .catch((err) => { reject(err); });
         });
+    },
+    getUserId: (username) => {
+        return new Promise((resolve, reject) => {
+            Axios.get('https://api.roblox.com/users/get-by-username?username=' + username).then((response) => {
+                resolve(response.data.Id);
+            })
+            .catch((err) => { reject(err); })
+        });
     }
 }
 
