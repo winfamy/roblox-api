@@ -7,6 +7,11 @@ router.get('/:user_id', (req, res) => {
         res.json(inventory);
     });
 });
+router.get('/owners/:asset_id', (req, res) => {
+    InventoryAPI.getAssetOwners(req.params.asset_id).then((owners) => {
+        res.json(owners);
+    })
+})
 
 module.exports = (app) => {
     app.use('/inventory', router);

@@ -1,4 +1,5 @@
 import request from "request";
+import Axios from "axios";
 
 var API = {
     getInventory: (user_id) => {
@@ -56,6 +57,41 @@ var API = {
                 }
             }          
         })
+    },
+    getAssetOwners: (asset_id) => {
+        return new Promise((resolve, reject) => {
+            var owners = [];
+            function getPage(asset_id, page_cursor, attempts) {
+                var url = "https://inventory.roblox.com/v1/assets/"+asset_id.toString()+"/owners?sortOrder=Asc&limit=100" + (page_cursor?"&cursor=" + page_cursor:"");
+                Axios.get(url).then((response) => {
+                    console.log(owners.length);
+                    return (response.data.nextPageCursor == null)
+                        ? push(response.data, () => { resolve(owners); })
+                        : push(response.data, () => { getPage(asset_id, response.data.nextPageCursor, 1); });
+                })
+                .catch((err) => {
+                    console.log(err);
+                    return (attempts == 3) ? resolve(owners) : getPage(asset_id, page_cursor, attempts+1);
+                });
+            }
+
+            function push(json, callback) {
+                var left_to_process = json.data.length;
+                json.data.forEach(function(item) {
+                    if(item.owner != null)
+                        owners.push({
+                            uaid: item.userAssetID,
+                            serial: item.serialNumber,
+                            owner: item.owner.userId
+                        });
+                    if(!--left_to_process) {
+                        callback();
+                    }
+                });
+            }
+
+            getPage(asset_id, undefined, 1);
+        });
     }
 }
 
