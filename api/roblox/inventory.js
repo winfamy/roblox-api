@@ -28,17 +28,16 @@ var API = {
                 if(num == 1) {
                     var maxpages = Math.ceil(json.data.totalNumber/25);
                     if(maxpages == 1)
-                    return push(json, function() { complete(type); });
+                        return push(json, function() { complete(type); });
                     push(json, function() {
-                    for (var i = 2; i <= maxpages; i++) {
-                        pages[types.indexOf(type)].push(i);
-                        console.log(pages[types.indexOf(type)]);
-                        getPage(type, i)
-                    }
+                        for (var i = 2; i <= maxpages; i++) {
+                            pages[types.indexOf(type)].push(i);
+                            getPage(type, i)
+                        }
                     });
                 } else {
                     push(json, function() {
-                    pageComplete(type, num);
+                       pageComplete(type, num);
                     });
                 }
                 });
@@ -47,30 +46,26 @@ var API = {
             function push(json, cb) {
                 var left_to_process = json.data.InventoryItems.length;
                 json.data.InventoryItems.forEach(function(item) {
-                inventory.push({
-                    name: item.Name,
-                    rap: parseInt(item.AveragePrice),
-                    uaid: item.UserAssetID,
-                    link: item.ItemLink
-                });
-                if(!--left_to_process) {
-                    cb();
-                }
+                    inventory.push({
+                        name: item.Name,
+                        rap: parseInt(item.AveragePrice),
+                        uaid: item.UserAssetID,
+                        link: item.ItemLink,
+                        img: item.ImageLink
+                    });
+                    if(!--left_to_process) {
+                        cb();
+                    }
                 });
             }
 
             function pageComplete(type, page) {
                 pages[types.indexOf(type)].splice(pages[types.indexOf(type)].indexOf(page), 1);
-                console.log(pages[types.indexOf(type)]);
-                if(!pages[types.indexOf(type)].length) {
-                    complete(type);
-                }
+                if(!pages[types.indexOf(type)].length) { complete(type); }
             }
 
             function complete(type) {
-                if(!--left) {
-                 resolve(inventory);
-                }
+                if(!--left) { resolve(inventory); }
             }          
         })
     },
@@ -78,13 +73,15 @@ var API = {
         return new Promise((resolve, reject) => {
             var owners = [];
             function getPage(asset_id, page_cursor, attempts) {
-                var url = "https://inventory.roblox.com/v1/assets/"+asset_id.toString()+"/owners?sortOrder=Asc&limit=100&" + (page_cursor == undefined)?"cursor=" + page_cursor:"";
+                console.log(owners.length);
+                var url = "https://inventory.roblox.com/v1/assets/"+asset_id.toString()+"/owners?sortOrder=Asc&limit=100" + (page_cursor?"&cursor=" + page_cursor:"");
                 Axios.get(url).then((response) => {
                     return (response.data.nextPageCursor == null)
                         ? push(response.data, () => { resolve(owners); })
                         : push(response.data, () => { getPage(asset_id, response.data.nextPageCursor, 1); });
                 })
                 .catch((err) => {
+                    console.log(err);
                     return (attempts == 3) ? resolve(owners) : getPage(asset_id, page_cursor, attempts+1);
                 });
             }
@@ -92,16 +89,28 @@ var API = {
             function push(json, callback) {
                 var left_to_process = json.data.length;
                 json.data.forEach(function(item) {
-                    owners.push({
-                        uaid: item.userAssetID,
-                        serial: item.serialNumber,
-                        owner: item.owner.userId
-                    });
+                    if(item.owner != null)
+                        owners.push({
+                            uaid: item.userAssetID,
+                            serial: item.serialNumber,
+                            owner: item.owner.userId
+                        });
                     if(!--left_to_process) {
-                        cb();
+                        callback();
                     }
                 });
             }
+
+            getPage(asset_id, undefined, 1);
+        });
+    },
+    getLimiteds: () => {
+        return new Promise((resolve, reject) => {
+            API.getInventory(1).then((inventory) => {
+                for(var i = 0; i < inventory.length; i++)
+                    inventory[i].id = parseInt(inventory[i].split('?id=')[1]);
+                resolve(inventory);
+            });
         });
     }
 }
